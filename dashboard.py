@@ -25,35 +25,38 @@ def fetch_sightings(start_date, end_date, keyword):
     conn = get_connection()
     cursor = conn.cursor()
     end_date = end_date + timedelta(days=1)
+
     query = """
         SELECT post_id, title, content, url, location, latitude, longitude, source, created_utc
         FROM ufo_sightings
         WHERE created_utc >= %s AND created_utc < %s
         AND latitude IS NOT NULL AND longitude IS NOT NULL
     """
-
     params = [start_date, end_date]
 
-    # Only add content filter if keyword is not empty
     if keyword:
         query += " AND content ILIKE %s"
         params.append(f"%{keyword}%")
 
     query += " ORDER BY created_utc DESC LIMIT 100"
 
-    cursor.execute(query, params)
     try:
+        print("Executing query:", query)
+        print("With params:", params)
+
         cursor.execute(query, params)
-        conn.commit()  # Commit the transaction if successful
+        data = cursor.fetchall()
+        columns = [desc[0] for desc in cursor.description]
+        df = pd.DataFrame(data, columns=columns)
+        conn.commit()
     except Exception as e:
-        conn.rollback()  # Rollback transaction if it fails
-        print(f"Database error: {e}")
+        conn.rollback()
+        print(f"❌ Database error: {e}")
+        return pd.DataFrame()  # Return empty DataFrame on failure
+    finally:
+        cursor.close()
+        conn.close()
 
-
-    data = cursor.fetchall()
-    columns = [desc[0] for desc in cursor.description]
-    df = pd.DataFrame(data, columns=columns)
-    cursor.close()
     return df
 
 st.sidebar.title("🔍 Filters")
