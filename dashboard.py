@@ -27,14 +27,29 @@ def fetch_sightings(start_date, end_date, keyword):
     end_date = end_date + timedelta(days=1)
     query = """
         SELECT post_id, title, content, url, location, latitude, longitude, source, created_utc
-        FROM ufo_sighting
+        FROM ufo_sightings
         WHERE created_utc >= %s AND created_utc < %s
-        AND (%s = '' OR content ILIKE %s)
         AND latitude IS NOT NULL AND longitude IS NOT NULL
-        ORDER BY created_utc DESC
-        LIMIT 100
     """
-    cursor.execute(query, (start_date, end_date, keyword, f'%{keyword}%'))
+
+    params = [start_date, end_date]
+
+    # Only add content filter if keyword is not empty
+    if keyword:
+        query += " AND content ILIKE %s"
+        params.append(f"%{keyword}%")
+
+    query += " ORDER BY created_utc DESC LIMIT 100"
+
+    cursor.execute(query, params)
+    try:
+        cursor.execute(query, params)
+        conn.commit()  # Commit the transaction if successful
+    except Exception as e:
+        conn.rollback()  # Rollback transaction if it fails
+        print(f"Database error: {e}")
+
+
     data = cursor.fetchall()
     columns = [desc[0] for desc in cursor.description]
     df = pd.DataFrame(data, columns=columns)
