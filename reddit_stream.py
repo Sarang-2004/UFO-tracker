@@ -24,16 +24,6 @@ reddit = praw.Reddit(
 # Set up Geocoder
 geolocator = Nominatim(user_agent="ufo_location_geocoder", timeout=10)
 
-# Connect to PostgreSQL
-conn = psycopg2.connect(
-    dbname=os.getenv("PG_DB"),
-    user=os.getenv("PG_USER"),
-    password=os.getenv("PG_PASSWORD"),
-    host=os.getenv("PG_HOST"),
-    port=os.getenv("PG_PORT")
-)
-cursor = conn.cursor()
-
 # Subreddit to stream
 subreddit = reddit.subreddit("UFOs+aliens+highstrangeness")
 
@@ -51,12 +41,29 @@ def geocode_location(location):
     return None, None
 
 def save_to_db(post_id, title, content, url, location, lat, lon, source):
-    cursor.execute("""
-        INSERT INTO ufo_sighting (post_id, title, content, url, location, latitude, longitude, source)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-        ON CONFLICT (post_id) DO NOTHING;
-    """, (post_id, title, content, url, location, lat, lon, source))
-    conn.commit()
+    try:
+        conn = psycopg2.connect(
+            dbname=os.getenv("PG_DB"),
+            user=os.getenv("PG_USER"),
+            password=os.getenv("PG_PASSWORD"),
+            host=os.getenv("PG_HOST"),
+            port=os.getenv("PG_PORT")
+        )
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            INSERT INTO ufo_sighting (post_id, title, content, url, location, latitude, longitude, source)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (post_id) DO NOTHING;
+        """, (post_id, title, content, url, location, lat, lon, source))
+
+        conn.commit()
+        print(f"✅ Saved post {post_id} to database.")
+    except Exception as e:
+        print(f"❌ Database insert error for post {post_id}: {e}")
+    finally:
+        if 'cursor' in locals(): cursor.close()
+        if 'conn' in locals(): conn.close()
 
 def is_ufo_related(text):
     keywords = ["sighting", "saw a ufo", "seen a ufo", "ufo over", "object in the sky", "bright light", "flying saucer", "UAP", "UFO"]
@@ -77,6 +84,7 @@ def process_text(content, post_id, title, url, source):
             print(f"🛸 {source.title()}: {title}")
             print("📍 No location mentioned.")
             print("-" * 60)
+
 def fetch_recent_ufo_sightings(days=2):
     print(f"🔎 Fetching posts from the past {days} days...")
     start_time = datetime.utcnow() - timedelta(days=days)
@@ -87,7 +95,6 @@ def fetch_recent_ufo_sightings(days=2):
             content = f"{submission.title}\n{submission.selftext}"
             process_text(content, submission.id, submission.title, submission.url, "submission")
 
-            # Comments too
             submission.comments.replace_more(limit=0)
             for comment in submission.comments.list():
                 process_text(comment.body, comment.id, submission.title, f"https://reddit.com{comment.permalink}", "comment")
@@ -98,7 +105,6 @@ def stream_ufo_sightings():
         content = f"{submission.title}\n{submission.selftext}"
         process_text(content, submission.id, submission.title, submission.url, "submission")
 
-        # Process comments
         submission.comments.replace_more(limit=0)
         for comment in submission.comments.list():
             process_text(comment.body, comment.id, submission.title, f"https://reddit.com{comment.permalink}", "comment")
@@ -110,6 +116,3 @@ if __name__ == "__main__":
         stream_ufo_sightings()
     except KeyboardInterrupt:
         print("👋 Stopping stream...")
-    finally:
-        cursor.close()
-        conn.close()
