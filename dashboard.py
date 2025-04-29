@@ -55,7 +55,7 @@ def fetch_sightings(start_date, end_date, keyword):
         return pd.DataFrame()  # Return empty DataFrame on failure
     finally:
         cursor.close()
-        conn.close()
+        
 
     return df
 
