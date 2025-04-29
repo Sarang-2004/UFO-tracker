@@ -40,7 +40,7 @@ def geocode_location(location):
         return None, None
     return None, None
 
-def save_to_db(post_id, title, content, url, location, lat, lon, source):
+def save_to_db(post_id, title, content, url, location, lat, lon, source, created_utc):
     try:
         conn = psycopg2.connect(
             dbname=os.getenv("PG_DB"),
@@ -52,10 +52,10 @@ def save_to_db(post_id, title, content, url, location, lat, lon, source):
         cursor = conn.cursor()
 
         cursor.execute("""
-            INSERT INTO ufo_sighting (post_id, title, content, url, location, latitude, longitude, source)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO ufo_sighting (post_id, title, content, url, location, latitude, longitude, source, created_utc)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (post_id) DO NOTHING;
-        """, (post_id, title, content, url, location, lat, lon, source))
+        """, (post_id, title, content, url, location, lat, lon, source, created_utc))
 
         conn.commit()
         print(f"✅ Saved post {post_id} to database.")
@@ -69,7 +69,7 @@ def is_ufo_related(text):
     keywords = ["sighting", "saw a ufo", "seen a ufo", "ufo over", "object in the sky", "bright light", "flying saucer", "UAP", "UFO"]
     return any(kw.lower() in text.lower() for kw in keywords)
 
-def process_text(content, post_id, title, url, source):
+def process_text(content, post_id, title, url, source, created_utc):
     if is_ufo_related(content):
         locations = extract_locations(content)
         if locations:
@@ -79,7 +79,7 @@ def process_text(content, post_id, title, url, source):
                 print(f"🔗 {url}")
                 print(f"📍 {loc} -> lat: {lat}, lon: {lon}")
                 print("-" * 60)
-                save_to_db(post_id, title, content, url, loc, lat, lon, source)
+                save_to_db(post_id, title, content, url, loc, lat, lon, source, created_utc)
         else:
             print(f"🛸 {source.title()}: {title}")
             print("📍 No location mentioned.")
