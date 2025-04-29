@@ -28,7 +28,7 @@ def fetch_sightings(start_date, end_date, keyword):
 
     query = """
         SELECT post_id, title, content, url, location, latitude, longitude, source, created_utc
-        FROM ufo_sightings
+        FROM ufo_sighting
         WHERE created_utc >= %s AND created_utc < %s
         AND latitude IS NOT NULL AND longitude IS NOT NULL
     """
