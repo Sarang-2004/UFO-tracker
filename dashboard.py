@@ -126,5 +126,3 @@ if not df.empty:
 else:
     st.warning("No sightings found in that time frame or with that keyword.")
 
-with st.expander("🧾 Show raw data"):
-    st.dataframe(df)

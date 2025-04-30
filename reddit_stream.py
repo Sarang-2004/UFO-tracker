@@ -95,19 +95,12 @@ def fetch_recent_ufo_sightings(days=2):
             content = f"{submission.title}\n{submission.selftext}"
             process_text(content, submission.id, submission.title, submission.url, "submission", datetime.utcfromtimestamp(submission.created_utc))
 
-            submission.comments.replace_more(limit=0)
-            for comment in submission.comments.list():
-                process_text(comment.body, comment.id, submission.title, f"https://reddit.com{comment.permalink}", "comment",datetime.utcfromtimestamp(comment.created_utc))
 
 def stream_ufo_sightings():
     print("🌌 Streaming Reddit posts and comments about UFO sightings...")
     for submission in subreddit.stream.submissions(skip_existing=True):
         content = f"{submission.title}\n{submission.selftext}"
         process_text(content, submission.id, submission.title, submission.url, "submission", datetime.utcfromtimestamp(submission.created_utc))
-
-        submission.comments.replace_more(limit=0)
-        for comment in submission.comments.list():
-            process_text(comment.body, comment.id, submission.title, f"https://reddit.com{comment.permalink}", "comment", datetime.utcfromtimestamp(comment.created_utc))
         time.sleep(1)
 
 if __name__ == "__main__":
