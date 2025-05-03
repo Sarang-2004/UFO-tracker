@@ -25,7 +25,7 @@ reddit = praw.Reddit(
 geolocator = Nominatim(user_agent="ufo_location_geocoder", timeout=10)
 
 # Subreddit to stream
-subreddit = reddit.subreddit("UFOs+aliens+highstrangeness")
+subreddit = reddit.subreddit("UFOs")
 
 def extract_locations(text):
     doc = nlp(text)
