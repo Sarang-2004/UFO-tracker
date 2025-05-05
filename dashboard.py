@@ -11,7 +11,6 @@ from dotenv import load_dotenv
 st.set_page_config(page_title="UFO Sightings Tracker", layout="wide")
 load_dotenv()
 
-@st.cache_resource
 def get_connection():
     return psycopg2.connect(
         dbname=os.environ["PG_DB"],
@@ -55,7 +54,7 @@ def fetch_sightings(start_date, end_date, keyword):
         return pd.DataFrame()  # Return empty DataFrame on failure
     finally:
         cursor.close()
-        
+        conn.close()
 
     return df
 
